@@ -94,6 +94,7 @@ class Model(nn.Module):
         self.scales = configs.scales
         self.mv = moving_avg()
         self.upsample = nn.Upsample(scale_factor=self.scale_factor, mode='linear')
+        self.use_stdev_norm = False
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
@@ -110,6 +111,10 @@ class Model(nn.Module):
 
             # cross-scale normalization
             mean = torch.cat((enc_out, dec_out[:, label_len//scale:, :]), 1).mean(1).unsqueeze(1)
+            if self.use_stdev_norm:
+                stdev = torch.sqrt(torch.var(torch.cat((enc_out, dec_out[:, label_len//scale:, :]), 1), dim=1, keepdim=True, unbiased=False)+ 1e-5).detach() 
+                enc_out = enc_out / stdev
+                dec_out = dec_out / stdev
             enc_out = enc_out - mean
             dec_out = dec_out - mean
 
@@ -121,9 +126,15 @@ class Model(nn.Module):
             if self.prob_forecasting:
                 out_scale = torch.nn.functional.softplus(dec_out_coarse[:,:,dec_out_coarse.shape[2]//2:])
                 dec_out_coarse = dec_out_coarse[:,:,:dec_out_coarse.shape[2]//2]
-                dec_out_coarse = dec_out_coarse + mean
+                if self.use_stdev_norm:
+                    dec_out_coarse = dec_out_coarse * stdev + mean
+                else:
+                    dec_out_coarse = dec_out_coarse + mean
                 outputs.append(torch.cat((dec_out_coarse[:, -self.pred_len//scale:, :], out_scale[:, -self.pred_len//scale:, :]), 2))
             else:
-                dec_out_coarse = dec_out_coarse + mean
+                if self.use_stdev_norm:
+                    dec_out_coarse = dec_out_coarse * stdev + mean
+                else:
+                    dec_out_coarse = dec_out_coarse + mean
                 outputs.append(dec_out_coarse[:, -self.pred_len//scale:, :])
         return outputs

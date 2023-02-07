@@ -9,8 +9,8 @@
 # running for 4 datasets weather, traffic, electricity, exchange_rate
 PRED_LENS=(96 192 336 720)
 LOSS=(adaptive)
-MODELS=(AutoformerMS InformerMS ReformerMS FEDformerMS PerformerMS)
-DATASETS=(weather.csv traffic.csv electricity.csv exchange_rate.csv)
+MODELS=(AutoformerMS InformerMS ReformerMS FEDformerMS PerformerMS NHitsMS FiLMMS)
+DATASETS=(weather.csv traffic.csv electricity.csv exchange_rate.csv synthetic)
 for loss in ${LOSS[@]};do
     for pred_len in ${PRED_LENS[@]} ; do
         for model in ${MODELS[@]} ; do
@@ -28,8 +28,8 @@ done
 
 PRED_LENS=(96 192 336 720)
 LOSS=(mse)
-MODELS=(Autoformer Informer Reformer FEDformer Performer)
-DATASETS=(weather.csv traffic.csv electricity.csv exchange_rate.csv)
+MODELS=(Autoformer Informer Reformer FEDformer Performer NHits FiLM)
+DATASETS=(weather.csv traffic.csv electricity.csv exchange_rate.csv synthetic)
 for loss in ${LOSS[@]};do
     for pred_len in ${PRED_LENS[@]} ; do
         for model in ${MODELS[@]} ; do
@@ -45,10 +45,10 @@ for loss in ${LOSS[@]};do
     done
 done
 
-# running for ILI dataset with new pred lens
+## running for ILI dataset with new pred lens
 PRED_LENS=(24 32 48 64)
 LOSS=(adaptive)
-MODELS=(AutoformerMS InformerMS ReformerMS FEDformerMS PerformerMS)
+MODELS=(AutoformerMS InformerMS ReformerMS FEDformerMS PerformerMS NHitsMS FiLMMS)
 DATASETS=(national_illness.csv)
 for loss in ${LOSS[@]};do
     for pred_len in ${PRED_LENS[@]} ; do
@@ -67,7 +67,7 @@ done
 
 PRED_LENS=(24 32 48 64)
 LOSS=(mse)
-MODELS=(Autoformer Informer Reformer FEDformer Performer)
+MODELS=(Autoformer Informer Reformer FEDformer Performer NHits FiLM)
 DATASETS=(national_illness.csv)
 for loss in ${LOSS[@]};do
     for pred_len in ${PRED_LENS[@]} ; do

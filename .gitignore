@@ -137,3 +137,4 @@ slurm
 test_results
 results
 result_*.txt
+Mackey_Glass.npy

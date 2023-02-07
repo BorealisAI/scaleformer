@@ -48,6 +48,10 @@ def main():
     parser.add_argument('--label_len', type=int, default=48, help='start token length')
     parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
 
+    # supplementary config for FiLM model
+    parser.add_argument('--modes1', type=int, default=64, help='modes to be selected random 64')
+    parser.add_argument('--mode_type',type=int,default=0)
+
     # supplementary config for FEDformer model
     parser.add_argument('--version', type=str, default='Wavelets',
                         help='for FEDformer, there are two versions to choose, options: [Fourier, Wavelets]')
@@ -62,6 +66,10 @@ def main():
     # supplementary config for Reformer model
     parser.add_argument('--bucket_size', type=int, default=4, help='for Reformer')
     parser.add_argument('--n_hashes', type=int, default=4, help='for Reformer')
+    parser.add_argument('--film_ours', default=True, action='store_true')
+    parser.add_argument('--ab', type=int, default=2, help='ablation version')
+    parser.add_argument('--ratio', type=float, default=0.5, help='dropout')
+    parser.add_argument('--film_version', type=int, default=0, help='compression')
 
     # model define
     parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')
@@ -124,6 +132,13 @@ def main():
     if args.data_path=='weather.csv':
         args.root_path = './dataset/weather/' 
         c = 21
+        args.enc_in = c
+        args.dec_in = c
+        args.c_out = c
+
+    if args.data_path=='synthetic':
+        args.root_path = ''
+        c = 3
         args.enc_in = c
         args.dec_in = c
         args.c_out = c

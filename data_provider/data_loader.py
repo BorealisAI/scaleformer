@@ -1,24 +1,13 @@
-# MIT License
-
+# Copyright (c) 2019-present, Royal Bank of Canada.
 # Copyright (c) 2021 THUML @ Tsinghua University
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+#####################################################################################
+# Code is based on the Autoformer (https://arxiv.org/pdf/2106.13008.pdf) implementation
+# from https://github.com/thuml/Autoformer by THUML @ Tsinghua University
+####################################################################################
 
 import os
 import pandas as pd
@@ -27,6 +16,9 @@ from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
 from utils.timefeatures import time_features
 import warnings
+import numpy as np
+from math import floor
+
 
 warnings.filterwarnings('ignore')
 
@@ -208,6 +200,121 @@ class Dataset_ETT_minute(Dataset):
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
 
+class Dataset_Syn(Dataset):
+    def __init__(self, root_path, flag='train', size=None,
+                 features='S', data_path='ETTh1.csv',
+                 target='OT', scale=True, timeenc=0, freq='h'):
+        self.scaler = StandardScaler()
+        self.add_noise = False
+        lambdaf = lambda x: 0.2*x/(1+x**10) 
+        def Mackey_Glass(N, T):
+            t, x = np.zeros((N,)), np.zeros((N,))
+            x[0] = 1.2
+            for k in range(N-1):	
+                t[k+1] = t[k]+1
+                if k < T:
+                    k1=-0.1*x[k]
+                    k2=-0.1*(x[k]+k1/2); 
+                    k3=-0.1*(x[k]+k2/2); 
+                    k4=-0.1*(x[k]+k3);
+                    x[k+1]=x[k]+(k1+2*k2+2*k3+k4)/6; 
+                else:
+                    n=floor((t[k]-T-t[0])+1); 
+                    k1=lambdaf(x[n])-0.1*x[k]; 
+                    k2=lambdaf(x[n])-0.1*(x[k]+k1/2); 
+                    k3=lambdaf(x[n])-0.1*(x[k]+2*k2/2); 
+                    k4=lambdaf(x[n])-0.1*(x[k]+k3); 
+                    x[k+1]=x[k]+(k1+2*k2+2*k3+k4)/6; 
+            return t, x
+        def add_outliers(signal, perc=0.00001):
+            median = np.median(signal, 0)
+            stdev = signal.std(0)
+            outliers_sign = np.random.randint(0, 2, signal.shape)*2 - 1
+            outliers_mask = np.random.rand(*signal.shape)<perc
+            outliers = (np.random.rand(*signal.shape)*50+50) * stdev + median
+            outliers = outliers * outliers_sign * outliers_mask
+            return signal+outliers
+        len = 10000
+        t, x1 = Mackey_Glass(len, 18)
+        x1 = np.array([x1]).T
+        if flag=='train' and self.add_noise:
+            x1 = add_outliers(x1)
+        _, x2 = Mackey_Glass(len, 12)
+        time = np.arange(len)
+        values = np.where(time < 10, time**3, (time-9)**2)
+        seasonal = []
+        for i in range(40):
+            for j in range(250):
+                seasonal.append(values[j])
+        seasonal_upward = seasonal + np.arange(len)*10
+        big_event = np.zeros(len)
+        big_event[-2000:] = np.arange(2000)*-2000
+        non_stationary = np.array([seasonal_upward ]).T
+        self.scaler.fit(non_stationary)
+        non_stationary = self.scaler.transform(non_stationary)
+        x2 = np.array([x2]).T * 2 + non_stationary
+        if flag=='train' and self.add_noise:
+            x2 = add_outliers(x2)
+        _, x3 = Mackey_Glass(len, 9)
+        time = np.arange(len)
+        values = np.where(time < 10, time**3, (time-9)**2)
+        seasonal = []
+        for i in range(40):
+            for j in range(250):
+                seasonal.append(values[j])
+        seasonal_upward = seasonal + np.arange(len)*10
+        big_event = np.zeros(len)
+        big_event[-2000:] = np.arange(2000)*-10
+        non_stationary = np.array([seasonal_upward + big_event]).T
+        self.scaler.fit(non_stationary)
+        non_stationary = self.scaler.transform(non_stationary)
+        x3 = np.array([x3]).T * 2 + non_stationary
+        if flag=='train' and self.add_noise:
+            x3 = add_outliers(x3)
+        x = np.concatenate([x1, x2, x3], 1)
+        t = (np.array(t)%30)/30
+        t = np.concatenate([[t], [t], [t], [t]], 0).T
+        np.save('Mackey_Glass.npy', x)
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
+        # init
+        assert flag in ['train', 'test', 'val']
+        type_map = {'train': 0, 'val': 1, 'test': 2}
+        self.set_type = type_map[flag]
+
+        num_train = int(x.shape[0] * 0.7)
+        num_test = int(x.shape[0] * 0.2)
+        num_vali = x.shape[0] - num_train - num_test
+        border1s = [0, num_train - self.seq_len, x.shape[0] - num_test - self.seq_len]
+        border2s = [num_train, num_train + num_vali, x.shape[0]]
+        border1 = border1s[self.set_type]
+        border2 = border2s[self.set_type]
+
+        self.set_type = type_map[flag]
+        self.features = features
+        self.target = target
+        self.scale = scale
+        self.timeenc = timeenc
+        self.freq = freq
+        self.data_x = x[border1:border2]
+        self.data_y = x[border1:border2]
+        self.data_stamp = t
+
+    def __getitem__(self, index):
+        s_begin = index
+        s_end = s_begin + self.seq_len
+        r_begin = s_end - self.label_len
+        r_end = r_begin + self.label_len + self.pred_len
+
+        seq_x = self.data_x[s_begin:s_end]
+        seq_y = self.data_y[r_begin:r_end]
+        seq_x_mark = self.data_stamp[s_begin:s_end]
+        seq_y_mark = self.data_stamp[r_begin:r_end]
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
+
+    def __len__(self):
+        return len(self.data_x) - self.seq_len - self.pred_len + 1
 
 class Dataset_Custom(Dataset):
     def __init__(self, root_path, flag='train', size=None,
@@ -250,7 +357,6 @@ class Dataset_Custom(Dataset):
         cols.remove(self.target)
         cols.remove('date')
         df_raw = df_raw[['date'] + cols + [self.target]]
-        # print(cols)
         num_train = int(len(df_raw) * 0.7)
         num_test = int(len(df_raw) * 0.2)
         num_vali = len(df_raw) - num_train - num_test

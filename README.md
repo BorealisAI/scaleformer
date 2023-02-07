@@ -1,9 +1,9 @@
 
 
 # Scaleformer
-**Scaleformer: Iterative Multi-scale Refining Transformers for Time Series Forecasting**
+**[Scaleformer: Iterative Multi-scale Refining Transformers for Time Series Forecasting](https://arxiv.org/abs/2206.04038), ICLR 2023**
 
-This repo is a modified version of the public implementation of [Autoformer paper](https://arxiv.org/abs/2106.13008) which can be find in this [repository](https://github.com/thuml/Autoformer). We also use the related parts of FEDformer implementation from its [repository](https://github.com/MAZiqing/FEDformer).
+This repo is a modified version of the public implementation of [Autoformer paper](https://arxiv.org/abs/2106.13008) which can be find in this [repository](https://github.com/thuml/Autoformer). We also use the related parts of [FEDformer](https://github.com/MAZiqing/FEDformer), [FiLM](https://github.com/tianzhou2011/FiLM/), and [NHits](https://github.com/Nixtla/neuralforecast).
 
 ## Why Scaleformer?
 Using iteratively refining a forecasted time series at multiple scales with shared weights, architec- ture adaptations and a specially-designed normalization scheme, we are able to achieve significant performance improvements with minimal additional computational overhead.
@@ -22,7 +22,8 @@ outperforms the corresponding baselines with an average improvement of 13% and
 <p align="center">
 <img src="figs\table.png" width=90% alt="" align=center />
 <br><br>
-<b>Table 1.</b> Comparison of the MSE and MAE results for our proposed multi-scale framework version of Informer and Autoformer (<b>-MSA</b>) with their original models as the baseline. Results are given in the multi-variate setting, for different lenghts of the horizon window. The look-back window size is fixed to 96 for all experiments. The best results are shown in <b>Bold</b>. Our method outperforms vanilla versions of both Informer and Autoformer over almost all datasets and settings.
+<b>Table 1.</b> 
+Comparison of the MSE and MAE results for our proposed multi-scale framework version of different methods (<b>-MSA</b>) with respective baselines. Results are given in the multi-variate setting, for different lenghts of the horizon window. The best results are shown in <b>Bold</b>. Our method outperforms vanilla version of the baselines over almost all datasets and settings. The average improvement (error reduction) is shown in Green numbers at the bottom with respect the base models.
 </p>
 
 ## Installation
@@ -93,3 +94,7 @@ https://github.com/thuml/Autoformer
 https://github.com/MAZiqing/FEDformer
 
 https://github.com/jonbarron/robust_loss_pytorch.git
+
+https://github.com/Nixtla/neuralforecast
+
+https://github.com/tianzhou2011/FiLM/

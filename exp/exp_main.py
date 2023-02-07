@@ -12,7 +12,7 @@
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
 from models import Informer, Autoformer, Transformer, AutoformerMS, InformerMS, Reformer, \
-        ReformerMS, FEDformer, FEDformerMS, Performer, PerformerMS
+        ReformerMS, FEDformer, FEDformerMS, Performer, PerformerMS, NHits, NHitsMS, FiLM, FiLMMS
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
 from utils.metrics import metric
 from robust_loss_pytorch import AdaptiveLossFunction
@@ -145,6 +145,10 @@ class Exp_Main(Exp_Basic):
             'FEDformerMS': FEDformerMS,
             'Performer': Performer,
             'PerformerMS': PerformerMS,
+            'NHits': NHits,
+            'NHitsMS': NHitsMS,
+            'FiLM': FiLM,
+            'FiLMMS': FiLMMS,
         }
         model = model_dict[self.args.model].Model(self.args).float()
 
@@ -159,9 +163,9 @@ class Exp_Main(Exp_Basic):
 
     def _select_optimizer(self, additional_params=None):
         if additional_params is not None:
-            model_optim = optim.Adam(list(self.model.parameters())+additional_params, lr=self.args.learning_rate)
+            model_optim = optim.AdamW(list(self.model.parameters())+additional_params, lr=self.args.learning_rate)
         else:
-            model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate)
+            model_optim = optim.AdamW(self.model.parameters(), lr=self.args.learning_rate)
         return model_optim
 
     def _select_criterion(self):
@@ -250,7 +254,7 @@ class Exp_Main(Exp_Basic):
         elif self.args.loss=='adaptive':
             adaptive = AdaptiveLossFunction(1, torch.float32, self.device, alpha_hi=3.0)
             criterion_tmp = adaptive.lossfun 
-            adaptive_optim = optim.Adam(list(adaptive.parameters()), lr=0.001)
+            adaptive_optim = optim.AdamW(list(adaptive.parameters()), lr=0.001)
 
         if self.args.prob_forecasting:
             criterion = prob_loss_fn
@@ -298,7 +302,7 @@ class Exp_Main(Exp_Basic):
                     if self.args.output_attention:
                         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
                     else:
-                        outputs_all = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark, batch_y)
+                        outputs_all = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
                         if self.args.prob_forecasting:
                             if self.args.use_multi_scale:
                                 outputs_scale_all = [x[:, :, x.shape[2]//2:] for x in outputs_all]
