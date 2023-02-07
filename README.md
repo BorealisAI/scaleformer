@@ -6,7 +6,7 @@
 This repo is a modified version of the public implementation of [Autoformer paper](https://arxiv.org/abs/2106.13008) which can be find in this [repository](https://github.com/thuml/Autoformer). We also use the related parts of [FEDformer](https://github.com/MAZiqing/FEDformer), [FiLM](https://github.com/tianzhou2011/FiLM/), and [NHits](https://github.com/Nixtla/neuralforecast).
 
 ## Why Scaleformer?
-Using iteratively refining a forecasted time series at multiple scales with shared weights, architec- ture adaptations and a specially-designed normalization scheme, we are able to achieve significant performance improvements with minimal additional computational overhead.
+Using iteratively refining a forecasted time series at multiple scales with shared weights, architecture adaptations and a specially-designed normalization scheme, we are able to achieve significant performance improvements with minimal additional computational overhead.
 
 <p align="center">
 <img src="figs\teaser.png" width=90% alt="" align=center />
@@ -15,9 +15,7 @@ Using iteratively refining a forecasted time series at multiple scales with shar
 </p>
 
 
-Our experiments on four public datasets show that the proposed multi-scale framework
-outperforms the corresponding baselines with an average improvement of 13% and
-38% over Autoformer and Informer, respectively.
+Our experiments on various public datasets demonstrate that the proposed method outperforms the corresponding baselines. Depending on the choice of transformer architecture, our mutli-scale framework results in mean squared error reductions ranging from 5.5% to 38.5%.
 
 <p align="center">
 <img src="figs\table.png" width=90% alt="" align=center />
